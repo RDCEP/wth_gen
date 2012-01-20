@@ -1,9 +1,13 @@
+This script processes NetCDF sets to produce DSSAT-style ascii weather files. 
+Its set up to run with 8 threads on pads. 
+
 --------------------------------------------------------
 
 1. compile using ./compile
 
 2. edit "env" to change data directories, start and end year, etc.
-
+   -Directory out_dir should already exist and be empty. 
+   
 3. run by executing ./run
 
 [ 4. cleanup directory using ./cleanup ]
