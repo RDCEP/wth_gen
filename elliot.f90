@@ -203,8 +203,11 @@ do counter = 1,n_land_points_proc
   write(str_lon,'(i3.3)') jlon 
   fname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)//".dat"
   open(unit=1,file=fname)
-  write(1,'(A)')"      LAT     LONG"
-  write(1,20)lat(ilat), lon(jlon)   
+!  write(1,'(A)')"      LAT     LONG"
+!  write(1,20)lat(ilat), lon(jlon)
+  write(1,'(A)')"*WEATHER DATA : cell XXXXXXX years 1980 -- 2009"
+  write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
+  write(*,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
   write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
   do n=1,day_start-1
     write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
@@ -213,8 +216,8 @@ do counter = 1,n_land_points_proc
   close(1)
 end do
 
-10 format(I5.5,F6.1,F6.1,F6.1,F10.1)
-20 format(F9.4,F9.4)
+10 format(I5.5,F6.1,F6.1,F6.1,F6.1)
+!20 format(F9.4,F9.4)
 
 end program
 
