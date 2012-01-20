@@ -10,7 +10,7 @@ integer, parameter :: max_points_section = 18000, max_points_all = 130000
 real*4, allocatable :: data(:,:,:)
 integer start_yr,end_yr, nday_yr
 character fileroot*100,year*4,var_name*20,arg*10,outdir*100,file*200
-character str_lat*20, str_lon*20, fname*200
+character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200
 integer :: fid,status,n,iyr,ilat,jlon,varid,nyr, v
 real*4 all_data(4,max_points_section,nday*nyr_max)
 character(len=20) :: var_list(1:4)
@@ -18,7 +18,7 @@ character(len=80) :: tmax_dir, tmin_dir, precip_dir, solar_dir
 integer :: day_start
 integer :: all_times(nyr_max*nday)
 real*4 :: lat(nlat_all), lon(nlon_all)
-logical :: lat_lon_known, n_land_points_known
+logical :: lat_lon_known, n_land_points_known, ex
 integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
 integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_points_all, n_land_points_proc
 ! program for reading in netcdf data for tmax, tmin, solar and precip and outputting to ascii files
@@ -57,11 +57,14 @@ print*,"fileroot:", fileroot
 call getarg(8,outdir)
 print*,"outdir:", outdir
 
-call getarg(9,arg)
+call getarg(9,fname)
+print*,"fname:", fname
+
+call getarg(10,arg)
 read(arg,'(I4)') n_procs
 print*,"n_procs:", n_procs
 
-call getarg(10,arg)
+call getarg(11,arg)
 read(arg,'(I4)') proc_num
 print*,"proc_num:", proc_num
 
@@ -201,8 +204,13 @@ do counter = 1,n_land_points_proc
   jlon = print_point_lon(counter+min_land_point_proc-1) 
   write(str_lat,'(i3.3)') ilat 
   write(str_lon,'(i3.3)') jlon 
-  fname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)//".dat"
-  open(unit=1,file=fname)
+  dirname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)
+  inquire (file=dirname,exist=ex)
+  if (.not.(ex)) then
+    call system('mkdir '//trim(dirname))
+  end if
+  full_fname = trim(dirname)//"/"//trim(fname)
+  open(unit=1,file=full_fname)
 !  write(1,'(A)')"      LAT     LONG"
 !  write(1,20)lat(ilat), lon(jlon)
   write(1,'(A)')"*WEATHER DATA : cell XXXXXXX years 1980 -- 2009"

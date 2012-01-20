@@ -1,15 +1,17 @@
 #!/bin/csh -f
-setenv year_start 1980
-setenv year_stop 2009
+set n_time_intervals = 2
+set year_start_arr = ( 1980 1990 )
+set year_stop_arr = ( 1985 1995 )
+set fname_arr = ( GENERIC1.WTH GENERIC2.WTH )
 
-setenv in_dir /gpfs/pads/projects/see/data/skadi/raid/crop_climate_impacts/processed_data/
+set in_dir = /gpfs/pads/projects/see/data/skadi/raid/crop_climate_impacts/processed_data/
 
-setenv tmax_dir tmax/ncep/downscaled/
-setenv tmin_dir tmin/ncep/downscaled/
-setenv precip_dir precip/cpc/downscaled/
-setenv solar_dir solar/ncep/downscaled/
+set tmax_dir = tmax/ncep/downscaled/
+set tmin_dir = tmin/ncep/downscaled/
+set precip_dir = precip/cpc/downscaled/
+set solar_dir = solar/ncep/downscaled/
 
-setenv out_dir /gpfs/pads/projects/see/jelliott/H_cpc/
+set out_dir = /gpfs/pads/projects/see/CCSM_Library/nc_test_4
 
-setenv n_procs 8
+set n_procs = 8
 

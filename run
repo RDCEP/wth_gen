@@ -4,27 +4,21 @@ set exe = $cwd/elliot
 
 source env
 
-#$#set year_start = 1980
-#$#set year_stop = 2010 
-#$#
-#$#set in_dir = /gpfs/pads/projects/see/data/skadi/raid/crop_climate_impacts/processed_data/
-#$#
-#$#set tmax_dir = tmax/ncep/downscaled/
-#$#set tmin_dir = tmin/ncep/downscaled/
-#$#set precip_dir = precip/cpc/downscaled/
-#$#set solar_dir = solar/ncep/downscaled
-#$#
-#$#set out_dir = /gpfs/pads/projects/see/CCSM_Library/nc_test_3
-#$#
-#$#set n_procs = 8
+set m = 1
+  while ($m <= $n_time_intervals)
+    set fname = ${fname_arr[$m]}
+    set year_start = $year_start_arr[$m]
+    set year_stop = $year_stop_arr[$m]
 
-set n = 1            
-while ($n <= $n_procs)     
+    set n = 1            
+    while ($n <= $n_procs)     
 # write set of commands to file submit.pbs
-  cp submit.start submit.proc.$n
-  echo $exe $tmax_dir $tmin_dir $precip_dir $solar_dir $year_start $year_stop $in_dir $out_dir $n_procs $n>> "submit.proc.$n"
-  qsub submit.proc.$n
-  @ n = $n + 1
-#  sleep 300
+      cp submit.start submit.proc.$m.$n
+      echo $exe $tmax_dir $tmin_dir $precip_dir $solar_dir $year_start $year_stop $in_dir $out_dir $fname $n_procs $n>> "submit.proc.$m.$n"
+      qsub submit.proc.$m.$n
+      @ n = $n + 1
+    end
+
+  @ m = $m + 1
 end
 
