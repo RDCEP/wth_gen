@@ -212,7 +212,6 @@ do counter = 1,n_land_points_proc
   do n=1,day_start-1
     write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
                 all_data(4,counter,n)-273.16, all_data(1,counter,n)
-  STOP
   end do
   close(1)
 end do
