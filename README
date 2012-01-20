@@ -1,0 +1,16 @@
+--------------------------------------------------------
+
+1. compile using ./compile
+
+2. edit "env" to change data directories, start and end year, etc.
+
+3. run by executing ./run
+
+[ 4. cleanup directory using ./cleanup ]
+
+[ 5. can change walltime in PBS script by editing submit.start ]
+
+--------------------------------------------------------
+
+
+

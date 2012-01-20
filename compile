@@ -1,0 +1,1 @@
+gfortran -o elliot elliot.f90 -L/autonfs/home/dmcinern/lib -lnetcdf -lnetcdff -I/autonfs/home/dmcinern/include/ -mcmodel=medium

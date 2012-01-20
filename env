@@ -1,0 +1,15 @@
+#!/bin/csh -f
+setenv year_start 1980
+setenv year_stop 2009
+
+setenv in_dir /gpfs/pads/projects/see/data/skadi/raid/crop_climate_impacts/processed_data/
+
+setenv tmax_dir tmax/ncep/downscaled/
+setenv tmin_dir tmin/ncep/downscaled/
+setenv precip_dir precip/cpc/downscaled/
+setenv solar_dir solar/ncep/downscaled/
+
+setenv out_dir /gpfs/pads/projects/see/jelliott/H_cpc/
+
+setenv n_procs 8
+

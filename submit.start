@@ -1,0 +1,4 @@
+#!/bin/bash
+#PBS -N josh
+#PBS -l walltime=01:00:00
+LD_LIBRARY_PATH=/autonfs/home/dmcinern/lib:$LD_LIBRARY_PATH
