@@ -9,12 +9,12 @@ integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
 integer, parameter :: max_points_section = 18000, max_points_all = 130000
 real*4, allocatable :: data(:,:,:)
 integer start_yr,end_yr, nday_yr
-character fileroot*100,year*4,var_name*20,arg*10,outdir*100,file*200
+character fileroot*100,year*4,var_name*20,arg*10,outdir*100,file*300
 character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200, str_grid_ID*7, str_start_yr*4, str_end_yr*4
 integer :: fid,status,n,iyr,ilat,jlon,varid,nyr, v
 real*4 all_data(4,max_points_section,nday*nyr_max)
 character(len=20) :: var_list(1:4)
-character(len=80) :: tmax_dir, tmin_dir, precip_dir, solar_dir
+!character(len=80) :: tmax_dir, tmin_dir, precip_dir, solar_dir
 integer :: day_start
 integer :: all_times(nyr_max*nday)
 real*4 :: lat(nlat_all), lon(nlon_all)
@@ -22,6 +22,7 @@ logical :: lat_lon_known, n_land_points_known, ex
 integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
 integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_points_all, n_land_points_proc
 integer :: grid_ID
+character(len=80) :: temp_source, precip_source, solar_source, bcsd_type
 ! program for reading in netcdf data for tmax, tmin, solar and precip and outputting to ascii files
 !
 ! written by David McInerney, based on code from Gavin Schmidt
@@ -32,17 +33,17 @@ integer :: grid_ID
 ! allocate size of array data (will deallocate later)
 allocate(data(nlon_all,nlat_all,nday))
 
-call getarg(1,tmax_dir)
-print*,"tmax_dir:", tmax_dir
+call getarg(1,temp_source)
+print*,"temp_source:", temp_source
 
-call getarg(2,tmin_dir)
-print*,"tmin_dir:", tmin_dir
+call getarg(2,precip_source)
+print*,"precip_source:", precip_source
 
-call getarg(3,precip_dir)
-print*,"precip_dir:", precip_dir
+call getarg(3,solar_source)
+print*,"solar_source:", solar_source
 
-call getarg(4,solar_dir)
-print*,"solar_dir:", solar_dir
+call getarg(4,bcsd_type)
+print*,"bcsd_type:", bcsd_type
 
 call getarg(5,arg)
 read(arg,'(I4)') start_yr
@@ -99,14 +100,26 @@ do iyr = 1, nyr
 
     write(year,'(I4)') iyr+start_yr-1
 ! calculate file names for netcdf files
-    if ( (var_name .eq. 'tmax')) then
-      file=trim(fileroot)//trim(tmax_dir)//"/tmax_"//year//".nc"
-    else if ( (var_name .eq. 'tmin')) then
-      file=trim(fileroot)//trim(tmin_dir)//"/tmin_"//year//".nc"
+
+!    if ( (var_name .eq. 'tmax')) then
+!      file=trim(fileroot)//trim(tmax_dir)//"/tmax_"//year//".nc"
+!    else if ( (var_name .eq. 'tmin')) then
+!      file=trim(fileroot)//trim(tmin_dir)//"/tmin_"//year//".nc"
+!    else if ( var_name .eq. 'precip' ) then
+!      file=trim(fileroot)//trim(precip_dir)//"/precip_"//year//".nc"
+!    else if ( var_name .eq. 'solar' ) then
+!      file=trim(fileroot)//trim(solar_dir)//"/solar_"//year//".nc"
+!    end if
+
+    if ( (var_name .eq. 'tmax') .or. (var_name .eq. 'tmin') ) then
+      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(temp_source)//"/"//trim(bcsd_type)//"/"// & 
+            trim(var_name)//"_"//year//".nc"
     else if ( var_name .eq. 'precip' ) then
-      file=trim(fileroot)//trim(precip_dir)//"/precip_"//year//".nc"
+      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(precip_source)//"/"//trim(bcsd_type)//"/"// & 
+            trim(var_name)//"_"//year//".nc"
     else if ( var_name .eq. 'solar' ) then
-      file=trim(fileroot)//trim(solar_dir)//"/solar_"//year//".nc"
+      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(solar_source)//"/"//trim(bcsd_type)//"/"// & 
+            trim(var_name)//"_"//year//".nc"
     end if
 
 ! open netcdf file

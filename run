@@ -4,6 +4,12 @@ set exe = $cwd/elliot
 
 source env
 
+if ($?model_run) then
+  set temp_source = $model_run
+  set precip_source = $model_run
+  set solar_source = $model_run
+endif
+
 set m = 1
   while ($m <= $n_time_intervals)
     set fname = ${fname_arr[$m]}
@@ -14,7 +20,7 @@ set m = 1
     while ($n <= $n_procs)     
 # write set of commands to file submit.pbs
       cp submit.start submit.proc.$m.$n
-      echo $exe $tmax_dir $tmin_dir $precip_dir $solar_dir $year_start $year_stop $in_dir $out_dir $fname $n_procs $n>> "submit.proc.$m.$n"
+      echo $exe $temp_source $precip_source $solar_source $bcsd_type $year_start $year_stop $in_dir $out_dir $fname $n_procs $n>> "submit.proc.$m.$n"
       qsub submit.proc.$m.$n
       @ n = $n + 1
     end

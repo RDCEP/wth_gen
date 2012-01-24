@@ -6,12 +6,15 @@ set fname_arr = ( GENERIC1.WTH GENERIC2.WTH )
 
 set in_dir = /gpfs/pads/projects/see/data/skadi/raid/crop_climate_impacts/processed_data/
 
-set tmax_dir = tmax/ncep/downscaled/
-set tmin_dir = tmin/ncep/downscaled/
-set precip_dir = precip/cpc/downscaled/
-set solar_dir = solar/ncep/downscaled/
+# either set model_run or all of temp_source, precip_source, solar_source
+#set model_run = 'ccsm3/sres_a2'
+set temp_source = 'ncep'
+set precip_source = 'cpc'
+set solar_source = 'ncep'
 
-set out_dir = /gpfs/pads/projects/see/CCSM_Library/nc_test_4
+set bcsd_type = 'downscaled'
+
+set out_dir = /gpfs/pads/projects/see/CCSM_Library/grid_historical
 
 set n_procs = 8
 
