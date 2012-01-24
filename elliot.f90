@@ -10,7 +10,7 @@ integer, parameter :: max_points_section = 18000, max_points_all = 130000
 real*4, allocatable :: data(:,:,:)
 integer start_yr,end_yr, nday_yr
 character fileroot*100,year*4,var_name*20,arg*10,outdir*100,file*200
-character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200
+character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200, str_grid_ID*7, str_start_yr*4, str_end_yr*4
 integer :: fid,status,n,iyr,ilat,jlon,varid,nyr, v
 real*4 all_data(4,max_points_section,nday*nyr_max)
 character(len=20) :: var_list(1:4)
@@ -21,6 +21,7 @@ real*4 :: lat(nlat_all), lon(nlon_all)
 logical :: lat_lon_known, n_land_points_known, ex
 integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
 integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_points_all, n_land_points_proc
+integer :: grid_ID
 ! program for reading in netcdf data for tmax, tmin, solar and precip and outputting to ascii files
 !
 ! written by David McInerney, based on code from Gavin Schmidt
@@ -202,18 +203,23 @@ deallocate(data)
 do counter = 1,n_land_points_proc
   ilat = print_point_lat(counter+min_land_point_proc-1)
   jlon = print_point_lon(counter+min_land_point_proc-1) 
-  write(str_lat,'(i3.3)') ilat 
-  write(str_lon,'(i3.3)') jlon 
-  dirname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)
+!  write(str_lat,'(i3.3)') ilat 
+!  write(str_lon,'(i3.3)') jlon 
+!  dirname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)
+  grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
+  write(str_grid_ID,'(i7.7)') grid_ID
+  dirname = trim(outdir)//"/"//str_grid_ID
   inquire (file=dirname,exist=ex)
   if (.not.(ex)) then
     call system('mkdir '//trim(dirname))
   end if
   full_fname = trim(dirname)//"/"//trim(fname)
   open(unit=1,file=full_fname)
+  write(str_start_yr,'(i4.4)') start_yr
+  write(str_end_yr,'(i4.4)') end_yr
 !  write(1,'(A)')"      LAT     LONG"
 !  write(1,20)lat(ilat), lon(jlon)
-  write(1,'(A)')"*WEATHER DATA : cell XXXXXXX years 1980 -- 2009"
+  write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
   write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
   write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
   write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
