@@ -9,20 +9,27 @@ integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
 integer, parameter :: max_points_section = 18000, max_points_all = 130000
 real*4, allocatable :: data(:,:,:)
 integer start_yr,end_yr, nday_yr
-character fileroot*100,year*4,var_name*20,arg*10,outdir*100,file*300
-character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200, str_grid_ID*7, str_start_yr*4, str_end_yr*4
+character fileroot*100,var_name*20,arg*10,outdir*100,file*300
+character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200, str_start_yr*4, str_end_yr*4
+character :: fname_soil_old*200,fname_soil_new*200
 integer :: fid,status,n,iyr,ilat,jlon,varid,nyr, v
 real*4 all_data(4,max_points_section,nday*nyr_max)
 character(len=20) :: var_list(1:4)
-!character(len=80) :: tmax_dir, tmin_dir, precip_dir, solar_dir
 integer :: day_start
 integer :: all_times(nyr_max*nday)
 real*4 :: lat(nlat_all), lon(nlon_all)
 logical :: lat_lon_known, n_land_points_known, ex
 integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
+integer :: grid_ID_arr(max_points_all)
 integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_points_all, n_land_points_proc
 integer :: grid_ID
 character(len=80) :: temp_source, precip_source, solar_source, bcsd_type
+real*4 data_time_0(4,nlon_all,nlat_all)
+character :: str_grid_ID*7
+real*4 :: solar, precip, tmax, tmin
+integer :: time
+common /dirnames/ temp_source, precip_source, solar_source, bcsd_type, fileroot
+
 ! program for reading in netcdf data for tmax, tmin, solar and precip and outputting to ascii files
 !
 ! written by David McInerney, based on code from Gavin Schmidt
@@ -70,127 +77,52 @@ call getarg(11,arg)
 read(arg,'(I4)') proc_num
 print*,"proc_num:", proc_num
 
+print*
+
 ! list of variables we will read in
 var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
 
 nyr = end_yr-start_yr + 1
 
-! flag for whether lat and lon have been read in yet
-lat_lon_known = .false.
+! read in lat and lon from file
+call calc_lat_lon(var_list(1),start_yr,lat,lon)
 
-! flag for whether number of land points has been calculated
-n_land_points_known = .false.
+do v = 1,4
+  var_name = var_list(v)
+  call read_data(var_name,start_yr,data)
+  data_time_0(v,:,:) = data(:,:,1)
+end do
+
+! calculate number of land points, and which ones will be used by this processor
+! this will be moved to start of program when i have land/ocean mask file
+! this also copies soil data to new directory
+!print*,"calculating land points, and copying soil data to new directories"
+call calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
+              print_point_lat, print_point_lon,n_land_points_all, &
+              min_land_point_proc,max_land_point_proc, n_land_points_proc,grid_ID_arr)
 
 ! index used for time in data array
 day_start = 1
 
+print*,"reading data"
 ! loop over years
 do iyr = 1, nyr
 
+  print*,"  year",iyr
+
 ! calculate number of days in year
-    if ( mod(iyr+start_yr-1,4) .eq. 0 ) then
-      nday_yr = 366
-    else
-      nday_yr = 365
-    end if
+  if ( mod(iyr+start_yr-1,4) .eq. 0 ) then
+    nday_yr = 366
+  else
+    nday_yr = 365
+  end if
 
 ! loop over variables
   do v = 1, 4
     var_name = var_list(v)
 
-    write(year,'(I4)') iyr+start_yr-1
-! calculate file names for netcdf files
-
-!    if ( (var_name .eq. 'tmax')) then
-!      file=trim(fileroot)//trim(tmax_dir)//"/tmax_"//year//".nc"
-!    else if ( (var_name .eq. 'tmin')) then
-!      file=trim(fileroot)//trim(tmin_dir)//"/tmin_"//year//".nc"
-!    else if ( var_name .eq. 'precip' ) then
-!      file=trim(fileroot)//trim(precip_dir)//"/precip_"//year//".nc"
-!    else if ( var_name .eq. 'solar' ) then
-!      file=trim(fileroot)//trim(solar_dir)//"/solar_"//year//".nc"
-!    end if
-
-    if ( (var_name .eq. 'tmax') .or. (var_name .eq. 'tmin') ) then
-      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(temp_source)//"/"//trim(bcsd_type)//"/"// & 
-            trim(var_name)//"_"//year//".nc"
-    else if ( var_name .eq. 'precip' ) then
-      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(precip_source)//"/"//trim(bcsd_type)//"/"// & 
-            trim(var_name)//"_"//year//".nc"
-    else if ( var_name .eq. 'solar' ) then
-      file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(solar_source)//"/"//trim(bcsd_type)//"/"// & 
-            trim(var_name)//"_"//year//".nc"
-    end if
-
-! open netcdf file
-    status = nf_open(file,nf_nowrite,fid) 
-    if (status .ne. 0) then
-      print*,"cannot open ", file
-      stop 1
-    end if
-
-! read in lat and lon
-    if (.not.(lat_lon_known)) then
-
-      status = nf_inq_varid(fid,'lat',varid)
-      if (status .ne. 0) then
-        stop 12
-      end if
-      status = nf_get_var_real(fid,varid,lat)
-      if (status .ne. 0) then
-        stop 13
-      end if
-      status = nf_inq_varid(fid,'lon',varid)
-      if (status .ne. 0) then
-        stop 22
-      end if
-      status = nf_get_var_real(fid,varid,lon)
-      if (status .ne. 0) then
-        stop 23
-      end if
-      lat_lon_known = .true.
-    end if  
-
-! read in "daily_data" variable
-    status = nf_inq_varid(fid,'daily_data',varid)
-    if (status .ne. 0) then
-      print*,"nf_inq_varid fail"
-      stop 2
-    end if
-    status = nf_get_var_real(fid,varid,data)
-    if (status .ne. 0) then
-      print*,"nf_get_var_real fail"
-      stop 3
-    end if
-    status = nf_close(fid)  ! close
-    if (status .ne. 0) then
-      print*,"nf_close fail"
-      stop 4
-    end if
-! calculate number of land points, and which ones will be used by this processor
-! this will be moved to start of program when i have land/ocean mask file
-    if (.not.(n_land_points_known)) then
-      counter = 0
-      do ilat = 1,nlat_all
-        do jlon = 1,nlon_all
-! currently determining land/ocean mask from precip data
-          if (data(jlon,ilat,1)>=0.) then
-            counter = counter + 1
-            print_point_lat(counter) = ilat
-            print_point_lon(counter) = jlon
-          end if
-        end do
-      end do
-      n_land_points_all = counter
-      print*,"n_land_points_all",n_land_points_all
-      min_land_point_proc = int(1+dble(proc_num-1)*dble(n_land_points_all)/dble(n_procs))
-      print*,"min_land_point_proc",min_land_point_proc
-      max_land_point_proc = int(dble(proc_num)*dble(n_land_points_all)/dble(n_procs))
-      print*,"max_land_point_proc",max_land_point_proc
-n_land_points_proc = max_land_point_proc - min_land_point_proc + 1
-print*,"n_land_points_proc",n_land_points_proc
-      n_land_points_known = .true.
-    end if
+! read data from netcdf file
+    call read_data(var_name,iyr+start_yr-1,data)
 
 ! copy data from netcdf file to big array of data
     do counter = 1, n_land_points_proc
@@ -199,7 +131,6 @@ print*,"n_land_points_proc",n_land_points_proc
       all_data(v,counter,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
     end do
   end do
-  print*,"loaded data for year",iyr
 
 ! produce day value of form YYDDD
   do n=1,nday_yr
@@ -209,18 +140,16 @@ print*,"n_land_points_proc",n_land_points_proc
   day_start = day_start + nday_yr
 
 end do
-print*,"loaded all data"
 
 deallocate(data)
 
+print*,"writing data"
+
 do counter = 1,n_land_points_proc
+  if (mod(counter,int(0.1*float(n_land_points_proc))).eq.0) print*,counter," (",n_land_points_proc,")"
   ilat = print_point_lat(counter+min_land_point_proc-1)
   jlon = print_point_lon(counter+min_land_point_proc-1) 
-!  write(str_lat,'(i3.3)') ilat 
-!  write(str_lon,'(i3.3)') jlon 
-!  dirname = trim(outdir)//"/data_"//trim(str_lat)//"_"//trim(str_lon)
-  grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
-  write(str_grid_ID,'(i7.7)') grid_ID
+  write(str_grid_ID,'(i7.7)') grid_ID_arr(counter)
   dirname = trim(outdir)//"/"//str_grid_ID
   inquire (file=dirname,exist=ex)
   if (.not.(ex)) then
@@ -230,21 +159,271 @@ do counter = 1,n_land_points_proc
   open(unit=1,file=full_fname)
   write(str_start_yr,'(i4.4)') start_yr
   write(str_end_yr,'(i4.4)') end_yr
-!  write(1,'(A)')"      LAT     LONG"
-!  write(1,20)lat(ilat), lon(jlon)
   write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
   write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
   write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
   write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
   do n=1,day_start-1
-    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
-                all_data(4,counter,n)-273.16, all_data(1,counter,n)
+    time = all_times(n)
+    solar = all_data(2,counter,n)*0.0864
+    tmax = all_data(3,counter,n)-273.16
+    tmin = all_data(4,counter,n)-273.16
+    precip = all_data(1,counter,n)
+
+    if (tmax < tmin+0.1) then
+      print*,"lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
+      tmax = tmin + 0.1
+    end if
+
+!    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
+!                all_data(4,counter,n)-273.16, all_data(1,counter,n)
+
+    write(1,10) time, solar, tmax, tmin, precip
+                
+
   end do
   close(1)
+
+  fname_soil_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL' 
+  fname_soil_new = trim(dirname)//'/SOIL.SOL'
+  inquire (file=fname_soil_new,exist=ex)
+  if (.not.(ex)) then
+    call system('cp '//fname_soil_old//' '//fname_soil_new)
+  end if
+
 end do
 
 10 format(I5.5,F6.1,F6.1,F6.1,F6.1)
 !20 format(F9.4,F9.4)
 
 end program
+
+! --------------------------------------------
+ 
+subroutine calc_filename(var_name,year,file)
+
+  implicit none
+ 
+  character(len=80) :: temp_source, precip_source, solar_source, bcsd_type
+  character fileroot*100,str_year*4,var_name*20,file*200
+  integer :: year
+  common /dirnames/ temp_source, precip_source, solar_source, bcsd_type, fileroot
+
+  write(str_year,'(I4)') year
+
+  if ( (var_name .eq. 'tmax') .or. (var_name .eq. 'tmin') ) then
+    file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(temp_source)//"/"//trim(bcsd_type)//"/"// & 
+          trim(var_name)//"_"//str_year//".nc"
+  else if ( var_name .eq. 'precip' ) then
+    file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(precip_source)//"/"//trim(bcsd_type)//"/"// & 
+          trim(var_name)//"_"//str_year//".nc"
+  else if ( var_name .eq. 'solar' ) then
+    file=trim(fileroot)//'/'//trim(var_name)//'/'//trim(solar_source)//"/"//trim(bcsd_type)//"/"// & 
+          trim(var_name)//"_"//str_year//".nc"
+  end if
+
+  return
+ 
+end subroutine calc_filename
+
+! --------------------------------------------
+ 
+subroutine calc_lat_lon(var_name,year,lat,lon)
+ 
+  include 'netcdf.inc'
+
+!  implicit none
+
+  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
+  character :: var_name*20, file*200
+  real*4 :: lat(nlat_all), lon(nlon_all)
+  integer :: fid, status, year
+
+
+  call calc_filename(var_name,year,file)
+
+  status = nf_open(file,nf_nowrite,fid)
+  if (status .ne. 0) then
+    print*,"cannot open ", file
+    stop 101
+  end if
+ 
+! read in lat and lon
+  status = nf_inq_varid(fid,'lat',varid)
+  if (status .ne. 0) then
+    stop 112
+  end if 
+  status = nf_get_var_real(fid,varid,lat)
+  if (status .ne. 0) then
+    stop 113
+  end if 
+  status = nf_inq_varid(fid,'lon',varid)
+  if (status .ne. 0) then
+    stop 122
+  end if 
+  status = nf_get_var_real(fid,varid,lon)
+  if (status .ne. 0) then
+    stop 123
+  end if
+  
+  return
+ 
+end subroutine calc_lat_lon
+
+! --------------------------------------------
+ 
+subroutine read_data(var_name,year,data)
+ 
+!  implicit none
+
+  include 'netcdf.inc'
+
+  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
+  character var_name*20
+  real*4 data(nlon_all,nlat_all,nday)
+  integer :: fid, status, varid, year
+  character file*200
+ 
+  call calc_filename(var_name,year,file)
+
+  status = nf_open(file,nf_nowrite,fid)
+  if (status .ne. 0) then
+    print*,"cannot open ", file
+    stop 1
+  end if
+ 
+  status = nf_inq_varid(fid,'daily_data',varid)
+  if (status .ne. 0) then
+    print*,"nf_inq_varid fail"
+    stop 2
+  end if
+ 
+  status = nf_get_var_real(fid,varid,data)
+  if (status .ne. 0) then
+    print*,"nf_get_var_real fail"
+    stop 3
+  end if
+ 
+  status = nf_close(fid)  ! close
+  if (status .ne. 0) then
+    print*,"nf_close fail"
+    stop 4
+  end if
+ 
+  return
+ 
+end subroutine read_data
+
+! --------------------------------------------
+
+subroutine calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
+              print_point_lat, print_point_lon,n_land_points_all, &
+              min_land_point_proc,max_land_point_proc, n_land_points_proc, grid_ID_arr)
+
+  implicit none
+
+  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
+  integer, parameter :: max_points_section = 18000, max_points_all = 130000
+  integer :: min_land_point_proc,max_land_point_proc, n_land_points_proc
+  integer :: n_land_points_all
+  integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
+  integer :: ilat, jlon, m
+  real*4 :: data(nlon_all,nlat_all,nday)
+  integer :: proc_num, n_procs, grid_ID
+  real*4 data_time_0(4,nlon_all,nlat_all)
+  character fname_old*200, dirname*200,outdir*100,str_grid_ID*7
+  logical :: ex, in_soil_grid
+  real*4 :: lat(nlat_all), lon(nlon_all)
+  integer :: grid_ID_arr(max_points_all)
+integer, parameter :: n_soil_grid = 118545
+integer :: soil_grid(n_soil_grid)
+
+  open(unit=1,file='/gpfs/pads/projects/see/data/dssat/grid_hwsd.txt')
+  read(1,*) soil_grid 
+
+  print*,"calculating land points"
+
+  counter = 0
+  do ilat = 1,nlat_all
+    do jlon = 1,nlon_all
+
+      grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
+      write(str_grid_ID,'(i7.7)') grid_ID
+
+!      fname_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL'
+!      inquire (file=fname_old,exist=ex)
+
+! currently determining land/ocean mask from precip data
+!      if (data(jlon,ilat,1)>=0.) then
+!      if ( (ex) .and. (data_time_0(1,jlon,ilat)>=-999.) .and. (data_time_0(2,jlon,ilat)>=-999.) & 
+!           .and. (data_time_0(3,jlon,ilat)>=-999.)  .and. (data_time_0(4,jlon,ilat)>=-999.) ) then
+
+        if (data_time_0(1,jlon,ilat)>=-999.) then
+          if (data_time_0(2,jlon,ilat)>=-999.) then
+            if (data_time_0(3,jlon,ilat)>=-999.) then
+              if (data_time_0(4,jlon,ilat)>=-999.) then
+!                fname_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL'
+!                inquire (file=fname_old,exist=ex)
+!                if (ex) then
+
+                in_soil_grid = .false.
+                do m = 1, n_soil_grid
+                  if (soil_grid(m) .eq. grid_ID) then
+                    in_soil_grid = .true.
+                    exit
+                  endif
+                end do
+
+                if (in_soil_grid) then
+
+                  counter = counter + 1
+
+                  print_point_lat(counter) = ilat
+                  print_point_lon(counter) = jlon
+                  grid_ID_arr(counter) = grid_ID
+
+                end if
+              end if
+            end if
+          end if
+        end if  
+
+!        dirname = trim(outdir)//"/"//str_grid_ID
+!        inquire (file=dirname,exist=ex)
+!        if (.not.(ex)) then
+!          call system('mkdir '//trim(dirname))
+!          call system('cp '//trim(fname_old)//' '//trim(dirname))
+!        end if
+
+!      end if
+    end do
+  end do
+  n_land_points_all = counter
+  print*,"  n_land_points_all",n_land_points_all
+  min_land_point_proc = int(1+dble(proc_num-1)*dble(n_land_points_all)/dble(n_procs))
+  print*,"  min_land_point_proc",min_land_point_proc
+  max_land_point_proc = int(dble(proc_num)*dble(n_land_points_all)/dble(n_procs))
+  print*,"  max_land_point_proc",max_land_point_proc
+  n_land_points_proc = max_land_point_proc - min_land_point_proc + 1
+  print*,"  n_land_points_proc",n_land_points_proc
+  
+!@!print*,"copying soil data"
+!@!
+!@!  do counter = 1,n_land_points_proc
+!@!!    if (mod(counter,int(0.1*float(n_land_points_proc))).eq.0) print*,counter,"/",n_land_points_proc
+!@!   
+!@!    write(str_grid_ID,'(i7.7)') grid_ID_arr(counter)
+!@!    fname_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL' 
+!@!    dirname = trim(outdir)//"/"//str_grid_ID
+!@!    inquire (file=dirname,exist=ex)
+!@!    if (.not.(ex)) then
+!@!      call system('mkdir '//trim(dirname))
+!@!      call system('cp '//trim(fname_old)//' '//trim(dirname)//'/SOIL.SOL')
+!@!    end if
+!@!  end do
+
+  return
+
+end subroutine calc_land_points
+
 
