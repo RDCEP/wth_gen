@@ -240,6 +240,9 @@ do counter = chunk_start,chunk_end
 
 end do
 
+deallocate(all_data)
+deallocate(all_times)
+
 end do
 10 format(I5.5,F6.1,F6.1,F6.1,F6.1)
 
