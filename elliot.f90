@@ -48,6 +48,8 @@ real*4 data_time_0(4,nlon_all,nlat_all)
 character :: str_grid_ID*7
 real*4 :: solar, precip, tmax, tmin
 integer :: time
+integer :: n_chunks, nyr_chunk,chunk_start,chunk_end, chunk
+
 !common /dirnames/ temp_source, precip_source, solar_source, bcsd_type, fileroot
 !common /data_array/ data
 
@@ -100,6 +102,12 @@ print*,"proc_num:", proc_num
 
 print*
 
+write(str_start_yr,'(i4.4)') start_yr
+write(str_end_yr,'(i4.4)') end_yr
+write(str_proc_num,'(i1.1)') proc_num
+open(unit=2,file=trim(outdir)//'/temp_diag.'//str_start_yr//'_'//str_end_yr//'.p'// &
+     str_proc_num//'.txt')
+
 ! list of variables we will read in
 var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
 
@@ -114,6 +122,9 @@ do v = 1,4
   data_time_0(v,:,:) = data(:,:,1)
 end do
 
+n_chunks = ceiling(float(nyr)/10.)
+print*,n_chunks
+
 ! calculate number of land points, and which ones will be used by this processor
 ! this will be moved to start of program when i have land/ocean mask file
 ! this also copies soil data to new directory
@@ -121,13 +132,25 @@ call calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
               print_point_lat, print_point_lon,n_land_points_all, &
               min_land_point_proc,max_land_point_proc, n_land_points_proc)
 
-allocate(all_data(4,n_land_points_proc,nyr*nday))
-allocate(all_times(nyr*nday))
+!allocate(all_data(4,n_land_points_proc,nyr*nday))
+!allocate(all_times(nyr*nday))
+!allocate(all_data(4,n_land_points_proc,nday))
+!allocate(all_times(nday))
 
 ! index used for time in data array
 day_start = 1
 
 print*,"reading data"
+
+do chunk = 1, n_chunks
+
+  chunk_start = int(1+dble(chunk-1)*dble(n_land_points_proc)/dble(n_chunks))
+  chunk_end = int(dble(chunk)*dble(n_land_points_proc)/dble(n_chunks))
+  print*,chunk_start,chunk_end
+
+allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
+allocate(all_times(nyr*nday))
+
 ! loop over years
 do iyr = 1, nyr
 
@@ -148,10 +171,12 @@ do iyr = 1, nyr
     call read_data(var_name,iyr+start_yr-1)
 
 ! copy data from netcdf file to big array of data
-    do counter = 1, n_land_points_proc
+!    do counter = 1, n_land_points_proc
+    do counter = chunk_start,chunk_end
       ilat = print_point_lat(counter+min_land_point_proc-1)
       jlon = print_point_lon(counter+min_land_point_proc-1)
-      all_data(v,counter,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
+!      all_data(v,counter,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
+      all_data(v,counter-chunk_start+1,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
     end do
   end do
 
@@ -166,17 +191,13 @@ end do
 
 deallocate(data)
 
-write(str_start_yr,'(i4.4)') start_yr
-write(str_end_yr,'(i4.4)') end_yr
-write(str_proc_num,'(i1.1)') proc_num
-open(unit=2,file=trim(outdir)//'/temp_diag.'//str_start_yr//'_'//str_end_yr//'.p'// & 
-     str_proc_num//'.txt')
-
 print*,"writing data"
-do counter = 1,n_land_points_proc
-  if (mod(counter,int(0.1*float(n_land_points_proc))).eq.0) print*,counter," (",n_land_points_proc,")"
+!do counter = 1,n_land_points_proc
+do counter = chunk_start,chunk_end
+!  if (mod(counter,int(0.1*float(n_land_points_proc))).eq.0) print*,counter," (",n_land_points_proc,")"
   ilat = print_point_lat(counter+min_land_point_proc-1)
   jlon = print_point_lon(counter+min_land_point_proc-1) 
+
   grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
   write(str_grid_ID,'(i7.7)') grid_ID
   dirname = trim(outdir)//"/"//str_grid_ID
@@ -192,10 +213,10 @@ do counter = 1,n_land_points_proc
   write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
   do n=1,day_start-1
     time = all_times(n)
-    solar = all_data(2,counter,n)*0.0864
-    tmax = all_data(3,counter,n)-273.16
-    tmin = all_data(4,counter,n)-273.16
-    precip = all_data(1,counter,n)
+    solar = all_data(2,counter-chunk_start+1,n)*0.0864
+    tmax = all_data(3,counter-chunk_start+1,n)-273.16
+    tmin = all_data(4,counter-chunk_start+1,n)-273.16
+    precip = all_data(1,counter-chunk_start+1,n)
 
     if (tmax < tmin+0.1) then
       write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
@@ -206,7 +227,6 @@ do counter = 1,n_land_points_proc
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
 
     write(1,10) time, solar, tmax, tmin, precip
-                
 
   end do
   close(1)
@@ -220,6 +240,7 @@ do counter = 1,n_land_points_proc
 
 end do
 
+end do
 10 format(I5.5,F6.1,F6.1,F6.1,F6.1)
 
 end program

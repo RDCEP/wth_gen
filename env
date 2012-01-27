@@ -3,7 +3,7 @@
 # This should work for all the historical datasets
 set n_time_intervals = 1
 set year_start_arr = ( 1980 )
-set year_stop_arr = ( 2010 )
+set year_stop_arr = ( 20100 )
 set fname_arr = ( GENERIC1.WTH )
 
 # The following should work for the CCSM scenarios except for the fact that 
@@ -23,7 +23,7 @@ set solar_source = 'ncep'
 
 set bcsd_type = 'downscaled'
 
-set out_dir = /gpfs/pads/projects/see/data/dssat/grid_ncep/
+set out_dir = /gpfs/pads/projects/see/CCSM_Library/nc_test_1/
 
 set n_procs = 8
 
