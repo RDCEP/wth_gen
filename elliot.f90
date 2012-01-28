@@ -61,7 +61,7 @@ integer :: n_chunks, nyr_chunk,chunk_start,chunk_end, chunk
 ! ./elliot $temp_source $precip_source $solar_source $year_start $year_stop $in_dir $out_dir $n_procs $proc_num
 
 ! allocate size of array data (will deallocate later)
-allocate(data(nlon_all,nlat_all,nday))
+!allocate(data(nlon_all,nlat_all,nday))
 
 call getarg(1,temp_source)
 print*,"temp_source:", temp_source
@@ -102,6 +102,9 @@ print*,"proc_num:", proc_num
 
 print*
 
+!allocate(all_times(nyr*nday))
+
+! open file for outputting tmax, tmin diagnostics
 write(str_start_yr,'(i4.4)') start_yr
 write(str_end_yr,'(i4.4)') end_yr
 write(str_proc_num,'(i1.1)') proc_num
@@ -111,19 +114,23 @@ open(unit=2,file=trim(outdir)//'/temp_diag.'//str_start_yr//'_'//str_end_yr//'.p
 ! list of variables we will read in
 var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
 
+! number of years
 nyr = end_yr-start_yr + 1
 
 ! read in lat and lon from file
 call calc_lat_lon(var_list(1),start_yr,lat,lon)
 
+allocate(data(nlon_all,nlat_all,nday))
 do v = 1,4
   var_name = var_list(v)
   call read_data(var_name,start_yr)
   data_time_0(v,:,:) = data(:,:,1)
 end do
+deallocate(data)
 
 n_chunks = ceiling(float(nyr)/10.)
-print*,n_chunks
+!n_chunks = ceiling(float(nyr)/1.)
+!print*,n_chunks
 
 ! calculate number of land points, and which ones will be used by this processor
 ! this will be moved to start of program when i have land/ocean mask file
@@ -138,110 +145,118 @@ call calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
 !allocate(all_times(nday))
 
 ! index used for time in data array
-day_start = 1
+!day_start = 1
 
 print*,"reading data"
 
+! break number of points into smaller chunks to reduce size of all_data array
 do chunk = 1, n_chunks
 
+! first and last indexes for this chunk
   chunk_start = int(1+dble(chunk-1)*dble(n_land_points_proc)/dble(n_chunks))
   chunk_end = int(dble(chunk)*dble(n_land_points_proc)/dble(n_chunks))
-  print*,chunk_start,chunk_end
+  print*,"chunk start=",chunk_start,"chunk end=",chunk_end
 
-allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
-allocate(all_times(nyr*nday))
+  day_start = 1
+
+  allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
+  allocate(all_times(nyr*nday))
 
 ! loop over years
-do iyr = 1, nyr
+  do iyr = 1, nyr
 
-  print*,"  year",iyr
+    print*,"  year",iyr
 
 ! calculate number of days in year
-  if ( mod(iyr+start_yr-1,4) .eq. 0 ) then
-    nday_yr = 366
-  else
-    nday_yr = 365
-  end if
+    if ( mod(iyr+start_yr-1,4) .eq. 0 ) then
+      nday_yr = 366
+    else
+      nday_yr = 365
+    end if
+
+    allocate(data(nlon_all,nlat_all,nday))
 
 ! loop over variables
-  do v = 1, 4
-    var_name = var_list(v)
+    do v = 1, 4
+      var_name = var_list(v)
 
 ! read data from netcdf file
-    call read_data(var_name,iyr+start_yr-1)
+!      print*,"reading ",var_name," data for year ",iyr
+      call read_data(var_name,iyr+start_yr-1)
+!      print*,"done"
 
 ! copy data from netcdf file to big array of data
 !    do counter = 1, n_land_points_proc
-    do counter = chunk_start,chunk_end
-      ilat = print_point_lat(counter+min_land_point_proc-1)
-      jlon = print_point_lon(counter+min_land_point_proc-1)
+      do counter = chunk_start,chunk_end
+        ilat = print_point_lat(counter+min_land_point_proc-1)
+        jlon = print_point_lon(counter+min_land_point_proc-1)
 !      all_data(v,counter,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
-      all_data(v,counter-chunk_start+1,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
+        all_data(v,counter-chunk_start+1,day_start:day_start+nday_yr-1) = data(jlon,ilat,1:nday_yr)
+      end do
     end do
-  end do
+
+    deallocate(data)
 
 ! produce day value of form YYDDD
-  do n=1,nday_yr
-    all_times(day_start+n-1) = (iyr-1)*1000 + n
+    do n=1,nday_yr
+      all_times(day_start+n-1) = (iyr-1)*1000 + n
+    end do
+
+    day_start = day_start + nday_yr
+
   end do
 
-  day_start = day_start + nday_yr
-
-end do
-
-deallocate(data)
-
-print*,"writing data"
+  print*,"writing data"
 !do counter = 1,n_land_points_proc
-do counter = chunk_start,chunk_end
+  do counter = chunk_start,chunk_end
 !  if (mod(counter,int(0.1*float(n_land_points_proc))).eq.0) print*,counter," (",n_land_points_proc,")"
-  ilat = print_point_lat(counter+min_land_point_proc-1)
-  jlon = print_point_lon(counter+min_land_point_proc-1) 
+    ilat = print_point_lat(counter+min_land_point_proc-1)
+    jlon = print_point_lon(counter+min_land_point_proc-1) 
 
-  grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
-  write(str_grid_ID,'(i7.7)') grid_ID
-  dirname = trim(outdir)//"/"//str_grid_ID
-  inquire (file=dirname,exist=ex)
-  if (.not.(ex)) then
-    call system('mkdir '//trim(dirname))
-  end if
-  full_fname = trim(dirname)//"/"//trim(fname)
-  open(unit=1,file=full_fname)
-  write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
-  write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
-  write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
-  write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
-  do n=1,day_start-1
-    time = all_times(n)
-    solar = all_data(2,counter-chunk_start+1,n)*0.0864
-    tmax = all_data(3,counter-chunk_start+1,n)-273.16
-    tmin = all_data(4,counter-chunk_start+1,n)-273.16
-    precip = all_data(1,counter-chunk_start+1,n)
-
-    if (tmax < tmin+0.1) then
-      write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
-      tmax = tmin + 0.1
+    grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
+    write(str_grid_ID,'(i7.7)') grid_ID
+    dirname = trim(outdir)//"/"//str_grid_ID
+    inquire (file=dirname,exist=ex)
+    if (.not.(ex)) then
+      call system('mkdir '//trim(dirname))
     end if
+    full_fname = trim(dirname)//"/"//trim(fname)
+    open(unit=1,file=full_fname)
+    write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
+    write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
+    write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
+    write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
+    do n=1,day_start-1
+      time = all_times(n)
+      solar = all_data(2,counter-chunk_start+1,n)*0.0864
+      tmax = all_data(3,counter-chunk_start+1,n)-273.16
+      tmin = all_data(4,counter-chunk_start+1,n)-273.16
+      precip = all_data(1,counter-chunk_start+1,n)
+
+      if (tmax < tmin+0.1) then
+        write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
+        tmax = tmin + 0.1
+      end if
 
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
 
-    write(1,10) time, solar, tmax, tmin, precip
+      write(1,10) time, solar, tmax, tmin, precip
+
+    end do
+    close(1)
+
+    fname_soil_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL' 
+    fname_soil_new = trim(dirname)//'/SOIL.SOL'
+    inquire (file=fname_soil_new,exist=ex)
+    if (.not.(ex)) then
+      call system('cp '//fname_soil_old//' '//fname_soil_new)
+    end if
 
   end do
-  close(1)
 
-  fname_soil_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL' 
-  fname_soil_new = trim(dirname)//'/SOIL.SOL'
-  inquire (file=fname_soil_new,exist=ex)
-  if (.not.(ex)) then
-    call system('cp '//fname_soil_old//' '//fname_soil_new)
-  end if
-
-end do
-
-deallocate(all_data)
-deallocate(all_times)
+  deallocate(all_data)
+  deallocate(all_times)
 
 end do
 10 format(I5.5,F6.1,F6.1,F6.1,F6.1)

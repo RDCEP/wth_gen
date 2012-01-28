@@ -1,1 +1,1 @@
-rm josh.e* josh.o* submit.proc.* elliot
+rm josh.e* josh.o* submit.proc.* elliot *.mod
