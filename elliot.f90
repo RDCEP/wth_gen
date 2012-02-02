@@ -110,6 +110,8 @@ write(str_end_yr,'(i4.4)') end_yr
 write(str_proc_num,'(i1.1)') proc_num
 open(unit=2,file=trim(outdir)//'/temp_diag.'//str_start_yr//'_'//str_end_yr//'.p'// &
      str_proc_num//'.txt')
+open(unit=3,file=trim(outdir)//'/precip_diag.'//str_start_yr//'_'//str_end_yr//'.p'// &
+     str_proc_num//'.txt')
 
 ! list of variables we will read in
 var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
@@ -237,6 +239,12 @@ do chunk = 1, n_chunks
         write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
         tmax = tmin + 0.1
       end if
+
+      if (precip < 0.) then
+        write(3,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"precip=",precip
+        precip = 0.
+      end if
+
 
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
