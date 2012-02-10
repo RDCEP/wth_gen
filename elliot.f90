@@ -245,11 +245,10 @@ do chunk = 1, n_chunks
         precip = 0.
       end if
 
-
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
 
-      write(1,10) time, solar, tmax, tmin, precip
+      if (solar .ne. 0d0) write(1,10) time, solar, tmax, tmin, precip
 
     end do
     close(1)
