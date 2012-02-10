@@ -46,9 +46,14 @@ integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_p
 integer :: grid_ID
 real*4 data_time_0(4,nlon_all,nlat_all)
 character :: str_grid_ID*7
-real*4 :: solar, precip, tmax, tmin
-integer :: time
+real*4, allocatable :: solar(:), precip(:), tmax(:), tmin(:), tave(:)
+integer, allocatable :: time(:)
 integer :: n_chunks, nyr_chunk,chunk_start,chunk_end, chunk
+integer :: day_count
+real*4 :: tave_sum, tave_mean, amp
+integer :: month_counter(12)
+real*4 :: tave_month_sum(12), tave_month_mean(12)
+integer :: month, m, day_of_year
 
 !common /dirnames/ temp_source, precip_source, solar_source, bcsd_type, fileroot
 !common /data_array/ data
@@ -163,6 +168,12 @@ do chunk = 1, n_chunks
 
   allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
   allocate(all_times(nyr*nday))
+  allocate(time(nyr*nday))
+  allocate(tmax(nyr*nday))
+  allocate(tmin(nyr*nday))
+  allocate(precip(nyr*nday))
+  allocate(solar(nyr*nday))
+  allocate(tave(nyr*nday))
 
 ! loop over years
   do iyr = 1, nyr
@@ -224,33 +235,75 @@ do chunk = 1, n_chunks
     end if
     full_fname = trim(dirname)//"/"//trim(fname)
     open(unit=1,file=full_fname)
-    write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
-    write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
-    write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
-    write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
+!    write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
+!    write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
+!    write(1,'(A,F9.4,F9.4,A)') "    CI", lat(ilat), lon(jlon), "   -99   -99   -99   -99   -99"
+!    write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
+
+    tave_sum = 0d0
+    day_count = 0
     do n=1,day_start-1
-      time = all_times(n)
-      solar = all_data(2,counter-chunk_start+1,n)*0.0864
-      tmax = all_data(3,counter-chunk_start+1,n)-273.16
-      tmin = all_data(4,counter-chunk_start+1,n)-273.16
-      precip = all_data(1,counter-chunk_start+1,n)
 
-      if (tmax < tmin+0.1) then
-        write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"tmax_orig=",tmax,"tmin_orig=",tmin
-        tmax = tmin + 0.1
-      end if
+      if (all_data(2,counter-chunk_start+1,n) .ne. 0d0) then
+        day_count = day_count + 1
+        time(day_count) = all_times(n)
+        solar(day_count) = all_data(2,counter-chunk_start+1,n)*0.0864
+        tmax(day_count) = all_data(3,counter-chunk_start+1,n)-273.16
+        tmin(day_count) = all_data(4,counter-chunk_start+1,n)-273.16
+        precip(day_count) = all_data(1,counter-chunk_start+1,n)
 
-      if (precip < 0.) then
-        write(3,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time,"precip=",precip
-        precip = 0.
-      end if
+        if (tmax(day_count) < tmin(day_count)+0.1) then
+          write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time(day_count), & 
+                     "tmax_orig=",tmax(day_count),"tmin_orig=",tmin(day_count)
+          tmax(day_count) = tmin(day_count) + 0.1
+        end if
+
+        if (precip(day_count) < 0.) then
+          write(3,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time(day_count),"precip=",precip(day_count)
+          precip(day_count) = 0.
+        end if
 
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
 
-      if (solar .ne. 0d0) write(1,10) time, solar, tmax, tmin, precip
+        tave(n) = 0.5d0*(tmin(day_count)+tmax(day_count))
+
+      end if
 
     end do
+
+    tave_mean = sum(tave(1:day_count))/dble(day_count)
+
+    tave_month_sum = 0d0
+    month_counter = 0
+    do n = 1, day_count
+      day_of_year = mod(time(n),1000)
+      month = ceiling(dble(day_of_year)*12./366.)
+      tave_month_sum(month) = tave_month_sum(month) + tave(n)
+      month_counter(month) = month_counter(month) + 1
+!      print*,"day of year = ", day_of_year,"   month =",month, "   tave(n) =", tave(n),  &
+!             "   tave_month_sum(month) =",tave_month_sum(month), "   month_counter(month) =",month_counter(month)
+    end do  
+    
+    do m = 1,12
+      tave_month_mean(m) = tave_month_sum(m)/dble(month_counter(m))
+    end do
+
+!print*, tave_month_mean
+
+    amp = maxval(tave_month_mean) - minval(tave_month_mean)
+
+!print*,amp
+
+    write(1,'(A)')"*WEATHER DATA : cell "//str_grid_ID//" years "//str_start_yr//" -- "//str_end_yr
+    write(1,'(A)')"@ INSI      LAT     LONG  ELEV   TAV   AMP REFHT WNDHT"
+    write(1,'(A,F9.4,F9.4,A,F6.1,F6.1,A)') "    CI", lat(ilat), lon(jlon), "   -99", tave_mean, amp,"   -99   -99"
+    write(1,'(A)')"@DATE  SRAD  TMAX  TMIN  RAIN"
+    
+    do n = 1, day_count
+      write(1,10) time(n), solar(n), tmax(n), tmin(n), precip(n)
+    end do
+
     close(1)
 
     fname_soil_old = '/gpfs/pads/projects/see/data/dssat/grid_hwsd/'//str_grid_ID//'/SOIL.SOL' 
