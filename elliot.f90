@@ -154,6 +154,15 @@ call calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
 ! index used for time in data array
 !day_start = 1
 
+!allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
+allocate(all_times(nyr*nday))
+allocate(time(nyr*nday))
+allocate(tmax(nyr*nday))
+allocate(tmin(nyr*nday))
+allocate(precip(nyr*nday))
+allocate(solar(nyr*nday))
+allocate(tave(nyr*nday))
+
 print*,"reading data"
 
 ! break number of points into smaller chunks to reduce size of all_data array
@@ -164,16 +173,9 @@ do chunk = 1, n_chunks
   chunk_end = int(dble(chunk)*dble(n_land_points_proc)/dble(n_chunks))
   print*,"chunk start=",chunk_start,"chunk end=",chunk_end
 
-  day_start = 1
+allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 
-  allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
-  allocate(all_times(nyr*nday))
-  allocate(time(nyr*nday))
-  allocate(tmax(nyr*nday))
-  allocate(tmin(nyr*nday))
-  allocate(precip(nyr*nday))
-  allocate(solar(nyr*nday))
-  allocate(tave(nyr*nday))
+  day_start = 1
 
 ! loop over years
   do iyr = 1, nyr
@@ -274,8 +276,8 @@ do chunk = 1, n_chunks
 
     tave_mean = sum(tave(1:day_count))/dble(day_count)
 
-    tave_month_sum = 0d0
-    month_counter = 0
+    tave_month_sum(:) = 0d0
+    month_counter(:) = 0
     do n = 1, day_count
       day_of_year = mod(time(n),1000)
       month = ceiling(dble(day_of_year)*12./366.)
@@ -316,7 +318,7 @@ do chunk = 1, n_chunks
   end do
 
   deallocate(all_data)
-  deallocate(all_times)
+!  deallocate(all_times)
 
 end do
 10 format(I5.5,F6.1,F6.1,F6.1,F6.1)
@@ -417,13 +419,13 @@ subroutine read_data(var_name,year)
     print*,"cannot open ", file
     stop 1
   end if
- 
+
   status = nf_inq_varid(fid,'daily_data',varid)
   if (status .ne. 0) then
     print*,"nf_inq_varid fail"
     stop 2
   end if
- 
+
   status = nf_get_var_real(fid,varid,data)
   if (status .ne. 0) then
     print*,"nf_get_var_real fail"
