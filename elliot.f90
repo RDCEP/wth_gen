@@ -268,11 +268,15 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
 !                all_data(4,counter,n)-273.16, all_data(1,counter,n)
 
-        tave(n) = 0.5d0*(tmin(day_count)+tmax(day_count))
+        tave(day_count) = 0.5d0*(tmin(day_count)+tmax(day_count))
 
       end if
 
     end do
+
+!print*,tave(1:day_count)
+!print*,day_count
+!print*
 
     tave_mean = sum(tave(1:day_count))/dble(day_count)
 
@@ -286,10 +290,16 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 !      print*,"day of year = ", day_of_year,"   month =",month, "   tave(n) =", tave(n),  &
 !             "   tave_month_sum(month) =",tave_month_sum(month), "   month_counter(month) =",month_counter(month)
     end do  
+
+!print*,month_counter
+!print*,tave_month_sum
     
     do m = 1,12
       tave_month_mean(m) = tave_month_sum(m)/dble(month_counter(m))
     end do
+
+!print*,tave_month_mean
+!stop 222
 
 !print*, tave_month_mean
 
