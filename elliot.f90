@@ -46,7 +46,7 @@ integer :: n_procs, proc_num, min_land_point_proc, max_land_point_proc, n_land_p
 integer :: grid_ID
 real*4 data_time_0(4,nlon_all,nlat_all)
 character :: str_grid_ID*7
-real*4, allocatable :: solar(:), precip(:), tmax(:), tmin(:), tave(:)
+double precision, allocatable :: solar(:), precip(:), tmax(:), tmin(:), tave(:)
 integer, allocatable :: time(:)
 integer :: n_chunks, nyr_chunk,chunk_start,chunk_end, chunk
 integer :: day_count

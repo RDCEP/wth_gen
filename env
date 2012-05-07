@@ -1,10 +1,10 @@
 #!/bin/csh -f
 
 # This should work for all the historical datasets
-set n_time_intervals = 4
-set year_start_arr = ( 1980 2010 2040 2070 )
-set year_stop_arr = ( 2010 2040 2070 2100 )
-set fname_arr = ( GENERIC1.WTH GENERIC2.WTH GENERIC3.WTH GENERIC4.WTH )
+set n_time_intervals = 1
+set year_start_arr = ( 2093 )
+set year_stop_arr = (  2093 )
+set fname_arr = ( GENERIC4.WTH )
 
 # The following should work for the CCSM scenarios except for the fact that 
 # 1980-1999 is stored in a separate folder. 
@@ -21,10 +21,10 @@ set temp_source = 'ccsm3/sres_a1b'
 set precip_source = 'ccsm3/sres_a1b'
 set solar_source = 'ccsm3/sres_a1b'
 
-set bcsd_type = 'downscaled'
+set bcsd_type = 'downscaled_bias_corrected'
 
-#set out_dir = /gpfs/pads/projects/see/data/dssat/grid_ccsm3_a1b_ds/
-set out_dir = /gpfs/pads/projects/see/CCSM_Library/nc_test_1/
+#set out_dir = /gpfs/pads/projects/see/data/dssat/grid/grid_ccsm3_a1b_ds/
+set out_dir = /gpfs/pads/projects/see/data/dssat/grid/grid_test/
 
 set n_procs = 8
 
