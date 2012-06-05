@@ -1,1 +1,1 @@
-rm josh.e* josh.o* submit.proc.* elliot *.mod
+rm nc_wth_gen.e* nc_wth_gen.o* submit.proc.* nc_wth_gen *.mod

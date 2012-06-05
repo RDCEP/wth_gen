@@ -16,7 +16,7 @@ end module dirnames
 
 ! -------------------------------
 
-program for_elliot
+program for_nc_wth_gen
 
 use data_module
 use dirnames
@@ -63,7 +63,7 @@ integer :: month, m, day_of_year
 ! written by David McInerney, based on code from Gavin Schmidt
 ! 
 ! usage: 
-! ./elliot $temp_source $precip_source $solar_source $year_start $year_stop $in_dir $out_dir $n_procs $proc_num
+! ./nc_wth_gen $temp_source $precip_source $solar_source $year_start $year_stop $in_dir $out_dir $n_procs $proc_num
 
 ! allocate size of array data (will deallocate later)
 !allocate(data(nlon_all,nlat_all,nday))
