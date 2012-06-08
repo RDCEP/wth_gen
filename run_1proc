@@ -1,0 +1,21 @@
+#!/bin/csh
+set cwd = $PWD
+set exe = $cwd/nc_wth_gen
+
+source env
+
+if ($?model_run) then
+  set temp_source = $model_run
+  set precip_source = $model_run
+  set solar_source = $model_run
+endif
+
+set m = 1
+set fname = ${fname_arr[$m]}
+set year_start = $year_start_arr[$m]
+set year_stop = $year_stop_arr[$m]
+
+set n = 1            
+#$exe $temp_source $precip_source $solar_source $bcsd_type $year_start $year_stop $in_dir $out_dir $fname $n_procs $n
+$exe $year_start $year_stop $in_dir $out_dir $fname $n_procs $n
+

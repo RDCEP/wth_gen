@@ -1,4 +1,4 @@
 #!/bin/bash
 #PBS -N nc_wth_gen
-#PBS -l walltime=03:00:00
+#PBS -l walltime=00:10:00
 LD_LIBRARY_PATH=/autonfs/home/dmcinern/lib:$LD_LIBRARY_PATH
