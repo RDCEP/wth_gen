@@ -16,5 +16,7 @@ Its set up to run with 8 threads on pads.
 
 --------------------------------------------------------
 
+* TODO see if there is any way to read compressed .nc4 files; initial test by NB failed
+* TODO find out which libraries we are linking against and make this more generic
 
 
