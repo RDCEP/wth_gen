@@ -265,10 +265,10 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 !    grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
     grid_ID = floor( 12*(lon(jlon)+180.-1./24.) - 51840*(lat(ilat)-1./24.) + 4661280.5 )
     write(str_grid_ID,'(i7.7)') grid_ID
-    dirname = trim(outdir)//"/"//str_grid_ID
+    dirname = trim(outdir)//"/"//str_grid_ID(1:3)//"/"//str_grid_ID
     inquire (file=dirname,exist=ex)
     if (.not.(ex)) then
-      call system('mkdir '//trim(dirname))
+      call system('mkdir -p '//trim(dirname))
     end if
     full_fname = trim(dirname)//"/"//trim(fname)
     open(unit=1,file=full_fname)
