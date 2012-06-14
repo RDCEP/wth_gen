@@ -16,19 +16,24 @@ nc_wth_gen: nc_wth_gen.f90
 	gfortran -o nc_wth_gen nc_wth_gen.f90 -L/autonfs/home/dmcinern/lib -lnetcdf -lnetcdff -I/autonfs/home/dmcinern/include/ -mcmodel=medium
 
 GENERIC1.WTH: nc_wth_gen
-	./nc_wth_gen 1950 1980 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC1.LOG
+	./nc_wth_gen 1950 1980 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC1.1.LOG # & \
+	# ./nc_wth_gen 1950 1980 $(in_dir) $(out_dir) $@ $(n_procs) 2 > log/GENERIC1.2.LOG
 
 GENERIC2.WTH: nc_wth_gen
-	./nc_wth_gen 1980 2010 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC2.LOG
+	./nc_wth_gen 1980 2010 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC2.1.LOG # & \
+	# ./nc_wth_gen 1980 2010 $(in_dir) $(out_dir) $@ $(n_procs) 2 > log/GENERIC2.2.LOG
 
 GENERIC3.WTH: nc_wth_gen
-	./nc_wth_gen 2010 2040 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC3.LOG
+	./nc_wth_gen 2010 2040 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC3.1.LOG # & \
+	# ./nc_wth_gen 2010 2040 $(in_dir) $(out_dir) $@ $(n_procs) 2 > log/GENERIC3.2.LOG
 
 GENERIC4.WTH: nc_wth_gen
-	./nc_wth_gen 2040 2070 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC4.LOG
+	./nc_wth_gen 2040 2070 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC4.1.LOG # & \
+	# ./nc_wth_gen 2040 2070 $(in_dir) $(out_dir) $@ $(n_procs) 2 > log/GENERIC4.2.LOG
 
 GENERIC5.WTH: nc_wth_gen
-	./nc_wth_gen 2070 2099 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC5.LOG
+	./nc_wth_gen 2070 2100 $(in_dir) $(out_dir) $@ $(n_procs) 1 > log/GENERIC5.1.LOG # & \
+	# ./nc_wth_gen 2070 2100 $(in_dir) $(out_dir) $@ $(n_procs) 2 > log/GENERIC5.2.LOG
 
 all: $(fname_arr)
 
