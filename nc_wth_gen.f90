@@ -243,9 +243,12 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 
 ! produce day value of form YYDDD
     do n=1,nday_yr
-!      all_times(day_start+n-1) = (iyr-1)*1000 + n
-!      all_times(day_start+n-1) = (mod(start_yr,100)+iyr-1)*1000 + n
-      all_times(day_start+n-1) = mod(start_yr+iyr-1,100)*1000 + n
+       if ( mod(start_yr/10,2) .eq. 0 ) then
+          all_times(day_start+n-1) = (iyr-1)*1000 + n
+       else
+          all_times(day_start+n-1) = (iyr-1+10)*1000 + n
+       end if
+!       all_times(day_start+n-1) = mod(start_yr+iyr-1,100)*1000 + n
     end do
 
     day_start = day_start + nday_yr
