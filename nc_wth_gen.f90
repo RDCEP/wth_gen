@@ -307,9 +307,9 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
           precip(day_count) = 0.
         end if
 
-        if (solar(day_count) < 1.) then
+        if (solar(day_count) < 0.) then
           write(4,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time(day_count),"solar=",solar(day_count)
-          solar(day_count) = 1.
+          solar(day_count) = 0.
         end if
 
 !    write(1,10) all_times(n), all_data(2,counter,n)*0.0864, all_data(3,counter,n)-273.16, & 
