@@ -25,8 +25,8 @@ implicit none
 
 include 'netcdf.inc'
 
-!integer, parameter :: nlat_all=480,nlon_all=960,nday=366!,nyr_max=31
-integer, parameter :: nlat_all=254,nlon_all=720,nday=366!,nyr_max=31
+integer, parameter :: nlat_all=480,nlon_all=960,nday=366!,nyr_max=34
+!integer, parameter :: nlat_all=254,nlon_all=720,nday=366!,nyr_max=31
 integer, parameter :: max_points_section = 18000, max_points_all = 130000
 integer start_yr,end_yr, nday_yr
 character var_name*20,arg*10,outdir*100,file*300
@@ -440,7 +440,7 @@ integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
   end if
  
 ! read in lat and lon
-  status = nf_inq_varid(fid,'lat',varid)
+  status = nf_inq_varid(fid,'latitude',varid)
   if (status .ne. 0) then
     stop 112
   end if 
@@ -448,7 +448,7 @@ integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
   if (status .ne. 0) then
     stop 113
   end if 
-  status = nf_inq_varid(fid,'lon',varid)
+  status = nf_inq_varid(fid,'longitude',varid)
   if (status .ne. 0) then
     stop 122
   end if 
@@ -479,13 +479,13 @@ subroutine read_data(var_name,year)
   call calc_filename(var_name,year,file)
 
   if ( var_name .eq. 'tmax' ) then
-    nc_var_name = 'tasmax'
+    nc_var_name = 'tmax'
   else if ( var_name .eq. 'tmin' ) then
-    nc_var_name = 'tasmin'
+    nc_var_name = 'tmin'
   else if ( var_name .eq. 'solar' ) then
-    nc_var_name ='rsds'
+    nc_var_name ='solar'
   else if ( var_name .eq. 'precip' ) then
-    nc_var_name = 'pr'
+    nc_var_name = 'precip'
   end if
 
   print*,file
@@ -529,8 +529,8 @@ subroutine calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
 
   implicit none
 
-!  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
-  integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
+  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=34
+!  integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
   integer, parameter :: max_points_section = 18000, max_points_all = 130000
   integer :: min_land_point_proc,max_land_point_proc, n_land_points_proc
   integer :: n_land_points_all
@@ -542,8 +542,8 @@ subroutine calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
   logical :: ex, in_soil_grid
   real*4 :: lat(nlat_all), lon(nlon_all)
 !  integer :: grid_ID_arr(max_points_all)
-integer, parameter :: n_soil_grid = 1971846
-!integer, parameter :: n_soil_grid = 118545
+!integer, parameter :: n_soil_grid = 1971846
+integer, parameter :: n_soil_grid = 118545
 integer :: soil_grid(n_soil_grid)
 integer :: data_temp(3,max_points_all)
 real*4 :: lon_val
