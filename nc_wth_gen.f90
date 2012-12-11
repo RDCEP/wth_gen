@@ -149,7 +149,7 @@ open(unit=4,file=trim(outdir)//'/solar_diag.'//str_start_yr//'_'//str_end_yr//'.
      str_proc_num//'.txt')
 
 ! list of variables we will read in
-var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
+var_list = (/ 'precip', 'solar ', 'tmax  ', 'tmin  ' /)
 
 ! number of years
 nyr = end_yr-start_yr + 1
@@ -162,7 +162,7 @@ call calc_lat_lon(var_list(1),start_yr,lat,lon)
 
 allocate(data(nlon_all,nlat_all,nday))
 do v = 1,4
-  var_name = var_list(v)
+  var_name = trim( var_list(v))
   call read_data(var_name,start_yr)
   data_time_0(v,:,:) = data(:,:,1)
 end do
