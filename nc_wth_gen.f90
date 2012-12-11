@@ -34,7 +34,7 @@ character var_name*20,arg*10,outdir*100,file*300
 character fname*20, full_fname*200, dirname*200, str_start_yr*4, str_end_yr*4, str_proc_num*1
 
 character :: fname_soil_old*200,fname_soil_new*200
-integer :: fid,status,n,iyr,ilat,jlon,varid,nyr, v
+integer :: fid,status,n,iyr,ilat,jlon,varid,nyr,shiftyr, v
 !real*4 all_data(4,max_points_section,nday*nyr_max)
 real*4, allocatable :: all_data(:,:,:)
 character(len=20) :: var_list(1:4)
@@ -154,6 +154,9 @@ var_list = (/ 'precip', 'solar', 'tmax', 'tmin' /)
 ! number of years
 nyr = end_yr-start_yr + 1
 
+! negative shift in output year relative to data start year
+shiftyr = 16
+
 ! read in lat and lon from file
 call calc_lat_lon(var_list(1),start_yr,lat,lon)
 
@@ -245,12 +248,12 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 
 ! produce day value of form YYDDD
     do n=1,nday_yr
-       if ( mod(start_yr/10,2) .eq. 0 ) then
-          all_times(day_start+n-1) = (iyr-1)*1000 + n
-       else
-          all_times(day_start+n-1) = (iyr-1+10)*1000 + n
-       end if
-!       all_times(day_start+n-1) = mod(start_yr+iyr-1,100)*1000 + n
+!       if ( mod(start_yr/10,2) .eq. 0 ) then
+!          all_times(day_start+n-1) = (iyr-1)*1000 + n
+!       else
+!          all_times(day_start+n-1) = (iyr-1+10)*1000 + n
+!       end if
+       all_times(day_start+n-1) = mod(start_yr-shiftyr+iyr-1,100)*1000 + n
     end do
 
     day_start = day_start + nday_yr
