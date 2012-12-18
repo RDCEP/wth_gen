@@ -27,7 +27,8 @@ include 'netcdf.inc'
 
 integer, parameter :: nlat_all=480,nlon_all=960,nday=366!,nyr_max=34
 !integer, parameter :: nlat_all=254,nlon_all=720,nday=366!,nyr_max=31
-integer, parameter :: max_points_section = 18000, max_points_all = 130000
+!integer, parameter :: max_points_section = 18000, max_points_all = 130000
+integer, parameter :: max_points_section = 18000, max_points_all = 460800
 integer start_yr,end_yr, nday_yr
 character var_name*20,arg*10,outdir*100,file*300
 !character str_lat*20, str_lon*20, fname*20, full_fname*200, dirname*200, str_start_yr*4, str_end_yr*4, str_proc_num*1
@@ -273,7 +274,11 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 
 !    grid_ID = floor( 12*lon(jlon) - 51840*lat(ilat) + 4661280.5 )
 !    grid_ID = floor( 12*(lon(jlon)+180.-1./24.) - 51840*(lat(ilat)-1./24.) + 4661280.5 )
-    grid_ID = nint(( 90. - lat(ilat)) *51840 +( 180 +lon(jlon)) *12)
+!    grid_ID = nint(( 90. - lat(ilat)) *51840 +( 180 +lon(jlon)) *12)
+! when longitiude runs from 0 to 360:
+    if( lon( jlon) > 180.) lon( jlon) = lon( jlon) - 360.
+! when longitude runs from -180 to 180 simply comment out the above statement. 
+    grid_ID = floor( 90. -lat( ilat) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
     write(str_grid_ID,'(i7.7)') grid_ID
     dirname = trim(outdir)//"/"//str_grid_ID(1:3)//"/"//str_grid_ID
     inquire (file=dirname,exist=ex)
@@ -297,7 +302,9 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
         solar(day_count) = all_data(2,counter-chunk_start+1,n)*0.0864
         tmax(day_count) = all_data(3,counter-chunk_start+1,n)-273.16
         tmin(day_count) = all_data(4,counter-chunk_start+1,n)-273.16
-        precip(day_count) = all_data(1,counter-chunk_start+1,n) * 24. * 3600.
+        precip(day_count) = all_data(1,counter-chunk_start+1,n)
+!  * 24. * 3600.
+! NARR data already in accumulation
 
         if (tmax(day_count) < tmin(day_count)+0.1) then
           write(2,*) "lat=",lat(ilat),"lon=",lon(jlon),"time=",time(day_count), & 
@@ -424,8 +431,8 @@ subroutine calc_lat_lon(var_name,year,lat,lon)
 
 !  implicit none
 
-!  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=31
-integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
+  integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=34
+!  integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
   character :: var_name*20, file*200
   real*4 :: lat(nlat_all), lon(nlon_all)
   integer :: fid, status, year
@@ -531,7 +538,8 @@ subroutine calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
 
   integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=34
 !  integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
-  integer, parameter :: max_points_section = 18000, max_points_all = 130000
+!  integer, parameter :: max_points_section = 18000, max_points_all = 130000
+  integer, parameter :: max_points_section = 18000, max_points_all = 460800
   integer :: min_land_point_proc,max_land_point_proc, n_land_points_proc
   integer :: n_land_points_all
   integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
@@ -577,9 +585,19 @@ real*4 :: lon_val
 
 
 !lon_val = lon(jlon) + 180.
- 
+
+! 
+! *** Why are we calculating grid_ID twice? ***
+! This is fragile and confusing.
+!
+
 !      grid_ID = floor( 12*lon_val - 51840*lat(ilat) + 4661280.5 )
-      grid_ID = floor( 12*(lon(jlon)+180.-1./24.) - 51840*(lat(ilat)-1./24.) + 4661280.5 )
+!      grid_ID = floor( 12*(lon(jlon)+180.-1./24.) - 51840*(lat(ilat)-1./24.) + 4661280.5 )
+! when longitiude runs from 0 to 360:
+       if( lon( jlon) > 180.) lon( jlon) = lon( jlon) - 360.
+! when longitude runs from -180 to 180 simply comment out the above statement. 
+       grid_ID = floor( 90. -lat( ilat) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
+
       write(str_grid_ID,'(i7.7)') grid_ID
 
 !        if (data_time_0(1,jlon,ilat)>=-999.) then
@@ -587,10 +605,10 @@ real*4 :: lon_val
 !            if (data_time_0(3,jlon,ilat)>=-999.) then
 !              if (data_time_0(4,jlon,ilat)>=-999.) then
 
-        if (data_time_0(1,jlon,ilat)<=999999.) then
-          if (data_time_0(2,jlon,ilat)<=999999.) then
-            if (data_time_0(3,jlon,ilat)<=999999.) then
-              if (data_time_0(4,jlon,ilat)<=999999.) then
+!        if (data_time_0(1,jlon,ilat)<=999999.) then
+!          if (data_time_0(2,jlon,ilat)<=999999.) then
+!            if (data_time_0(3,jlon,ilat)<=999999.) then
+!              if (data_time_0(4,jlon,ilat)<=999999.) then
 
 !@!                in_soil_grid = .false.
 !@!                do m = 1, n_soil_grid
@@ -600,9 +618,9 @@ real*4 :: lon_val
 !@!                  endif
 !@!                end do
 
-in_soil_grid = .true.
+!in_soil_grid = .true.
 
-                if (in_soil_grid) then
+!                if (in_soil_grid) then
 
                   counter = counter + 1
 
@@ -614,11 +632,11 @@ write(1,'(I7,I7,I7)') counter, print_point_lat(counter), print_point_lon(counter
 !print*, counter, grid_ID, lat(ilat), lon(jlon), print_point_lat(counter), print_point_lon(counter)
 !stop
 
-                end if
-              end if
-            end if
-          end if
-        end if  
+!                end if
+!              end if
+!            end if
+!          end if
+!        end if  
 
     end do
   end do
