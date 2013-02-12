@@ -156,7 +156,7 @@ var_list = (/ 'precip', 'solar ', 'tmax  ', 'tmin  ' /)
 nyr = end_yr-start_yr + 1
 
 ! negative shift in output year relative to data start year
-shiftyr = 16
+shiftyr = 0
 
 ! read in lat and lon from file
 call calc_lat_lon(var_list(1),start_yr,lat,lon)
