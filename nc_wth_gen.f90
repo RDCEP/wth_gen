@@ -224,6 +224,10 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
     end if
 
     allocate(data(nlon_all,nlat_all,nday))
+! *** hack to accommodate malformed NARR/CDO intermediate data ***
+!    allocate(data(nlon_all,nlat_all,nday))
+    allocate(data(nlon_all,nlat_all,nday+1))
+
 
 ! loop over variables
     do v = 1, 4
@@ -278,7 +282,7 @@ allocate(all_data(4,chunk_end-chunk_start+1,nyr*nday))
 ! when longitiude runs from 0 to 360:
     if( lon( jlon) > 180.) lon( jlon) = lon( jlon) - 360.
 ! when longitude runs from -180 to 180 simply comment out the above statement. 
-    grid_ID = floor( 90. -lat( ilat) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
+    grid_ID = floor(( 90. -lat( ilat)) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
     write(str_grid_ID,'(i7.7)') grid_ID
     dirname = trim(outdir)//"/"//str_grid_ID(1:3)//"/"//str_grid_ID
     inquire (file=dirname,exist=ex)
@@ -539,7 +543,7 @@ subroutine calc_land_points(data_time_0,proc_num,n_procs, lat, lon, outdir, &
   integer, parameter :: nlat_all=480,nlon_all=960,nday=366,nyr_max=34
 !  integer, parameter :: nlat_all=254,nlon_all=720,nday=366,nyr_max=31
 !  integer, parameter :: max_points_section = 18000, max_points_all = 130000
-  integer, parameter :: max_points_section = 18000, max_points_all = 460800
+  integer, parameter :: max_points_section = 18000, max_points_all = 9331200
   integer :: min_land_point_proc,max_land_point_proc, n_land_points_proc
   integer :: n_land_points_all
   integer :: counter, n_print_points, print_point_lat(max_points_all), print_point_lon(max_points_all)
@@ -596,7 +600,7 @@ real*4 :: lon_val
 ! when longitiude runs from 0 to 360:
        if( lon( jlon) > 180.) lon( jlon) = lon( jlon) - 360.
 ! when longitude runs from -180 to 180 simply comment out the above statement. 
-       grid_ID = floor( 90. -lat( ilat) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
+       grid_ID = floor(( 90. -lat( ilat)) *12.) *360 *12 +ceiling(( 180. +lon( jlon)) *12.)
 
       write(str_grid_ID,'(i7.7)') grid_ID
 
